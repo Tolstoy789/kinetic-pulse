@@ -20,7 +20,8 @@ android {
         // los emuladores de CI y los delegados GPU de LiteRT-LM.
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
+        // Cada build de CI tiene un versionCode creciente; en local queda en 1.
+        versionCode = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull() ?: 1
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -28,6 +29,17 @@ android {
         ndk {
             // Snapdragon 8 Elite es arm64 puro: no empaquetamos ABIs de 32 bits.
             abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            // Keystore versionado: sin él cada runner de CI genera uno nuevo, la firma cambia
+            // y actualizar la app obliga a desinstalarla (perdiendo la base de datos y los modelos).
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 

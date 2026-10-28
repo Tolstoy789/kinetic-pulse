@@ -1,18 +1,27 @@
 package com.kineticpulse.app.ai
 
 import com.kineticpulse.core.model.ExerciseModality
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.RandomAccessFile
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class GemmaLocalManagerTest {
 
@@ -28,13 +37,19 @@ class GemmaLocalManagerTest {
         private val chunks: List<String>,
         private val failOn: ComputeBackend? = null,
         private val backend: ComputeBackend,
+        private val chunkDelayMs: Long = 0,
     ) : LlmEngine {
         var closed = false
         override fun initialize() {
             if (backend == failOn) throw IllegalStateException("OpenCL no disponible")
         }
         override fun generate(systemInstruction: String, prompt: String, temperature: Float): Flow<String> =
-            chunks.asFlow()
+            flow {
+                chunks.forEach {
+                    if (chunkDelayMs > 0) delay(chunkDelayMs)
+                    emit(it)
+                }
+            }
         override fun close() { closed = true }
     }
 
@@ -44,11 +59,12 @@ class GemmaLocalManagerTest {
         chunks: List<String> = emptyList(),
         failOn: ComputeBackend? = null,
         created: MutableList<FakeEngine> = mutableListOf(),
+        chunkDelayMs: Long = 0,
     ): GemmaLocalManager {
         val dispatcher = StandardTestDispatcher(scope.testScheduler)
         return GemmaLocalManager(
             resources = resources,
-            engineFactory = { _, backend, _ -> FakeEngine(chunks, failOn, backend).also(created::add) },
+            engineFactory = { _, backend, _ -> FakeEngine(chunks, failOn, backend, chunkDelayMs).also(created::add) },
             scope = scope,
             ioDispatcher = dispatcher,
         )
@@ -56,7 +72,8 @@ class GemmaLocalManagerTest {
 
     private fun resourcesWith(vararg models: GemmaModel, ram: Long = 8_000): FakeResources {
         val dir = tmp.newFolder("models")
-        models.forEach { File(dir, it.fileName).writeText("stub") }
+        // Fichero disperso del tamaño mínimo: pasa la verificación sin ocupar disco.
+        models.forEach { RandomAccessFile(File(dir, it.fileName), "rw").use { f -> f.setLength(it.minFileSizeBytes) } }
         return FakeResources(dir, tmp.newFolder("cache"), ram)
     }
 
@@ -112,5 +129,78 @@ class GemmaLocalManagerTest {
         val m = manager(this, resourcesWith(GemmaModel.FAST), chunks = listOf("Lo siento, no entiendo."))
         m.load(GemmaModel.FAST)
         assertEquals("dominadas", m.parseQuickLog("dominadas 3x8").toList().single().exercise)
+    }
+
+    @Test
+    fun `modelo truncado no se carga`() = runTest {
+        val resources = resourcesWith()
+        File(resources.modelsDir, GemmaModel.FAST.fileName).writeText("push interrumpido")
+        val created = mutableListOf<FakeEngine>()
+        val m = manager(this, resources, created = created)
+        assertTrue(m.load(GemmaModel.FAST) is EngineState.Error)
+        assertTrue(created.isEmpty())
+    }
+
+    @Test
+    fun `unload espera a que termine la generacion en curso`() = runTest {
+        val created = mutableListOf<FakeEngine>()
+        val m = manager(
+            this,
+            resourcesWith(GemmaModel.FAST),
+            chunks = listOf("{\"exercise\":\"dips\",", "\"modality\":\"bodyweight\",\"sets\":3,\"reps\":10}"),
+            created = created,
+            chunkDelayMs = 1_000,
+        )
+        m.load(GemmaModel.FAST)
+        val generation = launch { m.parseQuickLog("dips 3x10").toList() }
+        advanceTimeBy(500)
+        runCurrent()
+
+        val unload = launch { m.unload() }
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertFalse("No se puede cerrar el motor a mitad de stream", created.single().closed)
+
+        advanceUntilIdle()
+        assertTrue(generation.isCompleted && unload.isCompleted)
+        assertTrue(created.single().closed)
+        assertEquals(EngineState.Unloaded, m.state.value)
+    }
+
+    @Test
+    fun `en segundo plano el modelo rapido se conserva durante el margen`() = runTest {
+        val created = mutableListOf<FakeEngine>()
+        val m = manager(this, resourcesWith(GemmaModel.FAST), created = created)
+        m.loadAsync(GemmaModel.FAST)
+        advanceUntilIdle()
+
+        m.onAppBackgrounded()
+        advanceTimeBy(GemmaModel.FAST.backgroundGrace - 1.seconds)
+        runCurrent()
+        assertTrue(m.state.value is EngineState.Ready)
+
+        // Volver antes del margen cancela la descarga.
+        m.onAppForegrounded()
+        advanceTimeBy(10.minutes)
+        runCurrent()
+        assertTrue(m.state.value is EngineState.Ready)
+        assertFalse(created.single().closed)
+    }
+
+    @Test
+    fun `el modelo grande se libera al pasar a segundo plano y se recarga al volver`() = runTest {
+        val created = mutableListOf<FakeEngine>()
+        val m = manager(this, resourcesWith(GemmaModel.COMPLEX), created = created)
+        m.loadAsync(GemmaModel.COMPLEX)
+        advanceUntilIdle()
+
+        m.onAppBackgrounded()
+        advanceUntilIdle()
+        assertEquals(EngineState.Unloaded, m.state.value)
+        assertTrue(created.single().closed)
+
+        m.onAppForegrounded()
+        advanceUntilIdle()
+        assertEquals(GemmaModel.COMPLEX, (m.state.value as EngineState.Ready).model)
     }
 }

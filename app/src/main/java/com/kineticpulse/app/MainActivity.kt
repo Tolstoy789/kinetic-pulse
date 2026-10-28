@@ -9,13 +9,17 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.graphics.toArgb
+import com.kineticpulse.app.ai.GemmaLocalManager
 import com.kineticpulse.app.ui.theme.KineticBlack
 import com.kineticpulse.app.ui.theme.KineticPulseTheme
 import com.kineticpulse.app.ui.workout.WorkoutScreen
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var gemma: GemmaLocalManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -37,6 +41,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             KineticPulseTheme { WorkoutScreen() }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        gemma.onAppForegrounded()
     }
 
     /**

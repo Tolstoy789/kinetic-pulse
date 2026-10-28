@@ -32,6 +32,8 @@ local.properties
 # ── Firmas y secretos ──────────────────────────────────────────
 *.jks
 *.keystore
+# Keystore de debug compartido (credenciales públicas android/android): firma estable entre builds de CI.
+!app/debug.keystore
 keystore.properties
 google-services.json
 .env
