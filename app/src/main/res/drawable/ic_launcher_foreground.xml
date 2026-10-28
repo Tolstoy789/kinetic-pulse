@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Icono A "Pulso": línea de ECG en Neón Volt que remata en un punto Cian. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Pulso estilizado en Neón Volt -->
-    <path
-        android:pathData="M30,56 L44,56 L49,42 L56,70 L62,48 L66,56 L78,56"
-        android:strokeWidth="5"
-        android:strokeColor="#CCFF00"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+    <!-- Escalado al 80 % para quedar dentro de la zona segura de 66 dp del icono adaptativo. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <path
+            android:pathData="M18,58 L38,58 L46,40 L56,76 L64,30 L72,58 L90,58"
+            android:strokeWidth="7"
+            android:strokeColor="@color/kinetic_volt"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="@color/kinetic_cyan"
+            android:pathData="M85.5,58 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0" />
+    </group>
 </vector>
