@@ -1,0 +1,44 @@
+# ── Modelos de IA (pesados, NUNCA al repo) ─────────────────────
+*.bin
+*.task
+*.litertlm
+*.tflite
+*.gguf
+*.safetensors
+/models/
+**/models/
+
+# ── Gradle / build ─────────────────────────────────────────────
+.gradle/
+build/
+**/build/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+output-metadata.json
+
+# ── Android Studio / IntelliJ ──────────────────────────────────
+*.iml
+.idea/
+!.idea/codeStyles/
+.navigation/
+local.properties
+
+# ── Firmas y secretos ──────────────────────────────────────────
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+.env
+
+# ── Cachés y SO ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+*.hprof
+/tmp/

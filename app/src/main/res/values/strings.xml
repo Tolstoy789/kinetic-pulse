@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kinetic Pulse</string>
+    <string name="live_workout_title">Sesión en vivo</string>
+    <string name="label_weight">Kilos</string>
+    <string name="label_reps">Reps</string>
+    <string name="label_rpe">RPE</string>
+    <string name="label_hold">Hold</string>
+    <string name="action_log_set">Registrar set</string>
+    <string name="action_start_hold">Iniciar isometría</string>
+    <string name="action_stop_hold">Detener</string>
+    <string name="quick_log_hint">Ej: 4x10 planche lean 5s pausa</string>
+    <string name="quick_log_title">NLP Quick Log</string>
+    <string name="action_parse">Procesar</string>
+    <string name="engine_status_unloaded">IA local: sin cargar</string>
+    <string name="engine_status_loading">IA local: cargando modelo…</string>
+    <string name="engine_status_ready">IA local: %1$s · %2$s</string>
+    <string name="engine_status_missing">IA local: modelo no encontrado, usando parser básico</string>
+    <string name="engine_status_error">IA local: error (%1$s)</string>
+    <string name="hold_seconds">%1$d s</string>
+    <string name="sets_logged">Sets registrados</string>
+    <string name="fatigue_label">Fatiga</string>
+    <string name="content_desc_decrease">Disminuir %1$s</string>
+    <string name="content_desc_increase">Aumentar %1$s</string>
+</resources>
