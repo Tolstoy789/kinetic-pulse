@@ -13,7 +13,13 @@ class KineticPulseApp : Application() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        // En segundo plano, el modelo (1–5 GB) es lo primero que debe salir de memoria.
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) gemma.onMemoryPressure()
+        // Desde Android 14 solo llegan UI_HIDDEN y BACKGROUND: ambos significan "ya no se ve",
+        // no presión de memoria. El gestor decide cuándo soltar el modelo (1–5 GB).
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) gemma.onAppBackgrounded()
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        gemma.onMemoryPressure()
     }
 }

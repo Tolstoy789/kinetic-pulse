@@ -97,23 +97,30 @@ La app lee los modelos de su almacenamiento externo específico, accesible por `
 /sdcard/Android/data/com.kineticpulse.app/files/models/
 ```
 
-El nombre de destino debe coincidir **exactamente** con `GemmaModel.fileName`:
+Usa el script, que copia a un fichero temporal, comprueba que el tamaño en el teléfono coincide con el local y solo entonces le pone el nombre que espera la app (`GemmaModel.fileName`). Así un cable que falla a mitad nunca deja un modelo truncado:
 
 ```bash
 adb devices                                    # el S25 Ultra debe aparecer como "device"
-MODELS=/sdcard/Android/data/com.kineticpulse.app/files/models
-adb shell mkdir -p $MODELS
 
 # Sustituye <archivo> por el .litertlm descargado en el paso anterior
-adb push gemma3-1b/<archivo>.litertlm   $MODELS/gemma3-1b-it-int4.litertlm
-adb push gemma3n-e4b/<archivo>.litertlm $MODELS/gemma-3n-E4B-it-int4.litertlm
-
-adb shell ls -lh $MODELS                        # verificar
-adb shell am force-stop com.kineticpulse.app    # reinicia la app para que cargue el modelo
+scripts/push-models.sh --fast gemma3-1b/<archivo>.litertlm \
+                       --complex gemma3n-e4b/<archivo>.litertlm
 ```
+
+El script reinicia la app al terminar. Si aun así copias a mano, la app rechaza ficheros claramente incompletos (menos de 300 MB para Gemma 3 1B o de 2 GB para Gemma 3n E4B) y lo indica bajo el título.
 
 > Usa un cable USB 3 (USB-C a USB-C): el modelo de 4B pesa varios GB.
 > Si desinstalas la app, Android borra esta carpeta y tendrás que repetir el `push`.
+
+#### Actualizar la app sin perder datos ni modelos
+
+Los APK de debug de la CI se firman con `app/debug.keystore` (versionado, con las credenciales públicas de debug `android`/`android`), así que cada versión nueva se instala encima de la anterior:
+
+```bash
+adb install -r kinetic-pulse-debug.apk
+```
+
+Si instalaste un APK anterior a este cambio, desinstálalo una única vez (`adb uninstall com.kineticpulse.app`) y vuelve a copiar los modelos.
 
 ### 3. Activar y verificar el delegado GPU
 
