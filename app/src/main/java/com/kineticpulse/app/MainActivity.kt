@@ -1,6 +1,9 @@
 package com.kineticpulse.app
 
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -21,9 +24,37 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         requestMaxRefreshRate()
+        holdSplashUntilPulseDrawn()
+        splashScreen.setOnExitAnimationListener { splash ->
+            splash.animate()
+                .alpha(0f)
+                .scaleX(1.08f)
+                .scaleY(1.08f)
+                .setDuration(SPLASH_EXIT_MS)
+                .withEndAction { splash.remove() }
+                .start()
+        }
         setContent {
             KineticPulseTheme { WorkoutScreen() }
         }
+    }
+
+    /**
+     * Mantiene el splash hasta que la línea de pulso termina de dibujarse. Sin esto, en un
+     * arranque en caliente el primer frame llega antes y la animación se corta a medias.
+     */
+    private fun holdSplashUntilPulseDrawn() {
+        val start = SystemClock.uptimeMillis()
+        val content = findViewById<View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    if (SystemClock.uptimeMillis() - start < SPLASH_MIN_MS) return false
+                    content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+            },
+        )
     }
 
     /**
@@ -37,5 +68,10 @@ class MainActivity : ComponentActivity() {
             ?.maxByOrNull { it.refreshRate }
             ?: return
         window.attributes = window.attributes.apply { preferredDisplayModeId = best.modeId }
+    }
+
+    private companion object {
+        const val SPLASH_MIN_MS = 900L
+        const val SPLASH_EXIT_MS = 250L
     }
 }

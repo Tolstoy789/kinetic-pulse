@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Arranque A "Pulso": la línea de ECG se dibuja (trimPathEnd 0 → 1) y el punto Cian
+  aparece con rebote al final. Duración total 1000 ms = windowSplashScreenAnimationDuration.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <!-- El splash recorta el icono a un círculo de 2/3: escalamos al 85 % para que no corte las puntas. -->
+            <group
+                android:pivotX="54"
+                android:pivotY="54"
+                android:scaleX="0.85"
+                android:scaleY="0.85">
+                <path
+                    android:name="pulse"
+                    android:pathData="M18,58 L38,58 L46,40 L56,76 L64,30 L72,58 L90,58"
+                    android:strokeWidth="7"
+                    android:strokeColor="@color/kinetic_volt"
+                    android:strokeLineCap="round"
+                    android:strokeLineJoin="round"
+                    android:trimPathEnd="0" />
+                <group
+                    android:name="dot"
+                    android:pivotX="90"
+                    android:pivotY="58"
+                    android:scaleX="0"
+                    android:scaleY="0">
+                    <path
+                        android:fillColor="@color/kinetic_cyan"
+                        android:pathData="M85.5,58 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0" />
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+
+    <target android:name="pulse">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="650"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="dot">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:duration="350"
+                    android:interpolator="@android:interpolator/overshoot"
+                    android:propertyName="scaleX"
+                    android:startOffset="600"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType" />
+                <objectAnimator
+                    android:duration="350"
+                    android:interpolator="@android:interpolator/overshoot"
+                    android:propertyName="scaleY"
+                    android:startOffset="600"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType" />
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>
