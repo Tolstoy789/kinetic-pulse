@@ -64,6 +64,10 @@ jobs:
         run: |
           if [ -n "$(git status --porcelain -- app/schemas)" ]; then
             git status --porcelain -- app/schemas
+            # Volcado para poder copiarlo desde el log si no se puede descargar el artefacto.
+            git ls-files --others --modified -- app/schemas | while read -r f; do
+              echo "::group::$f"; cat "$f"; echo; echo "::endgroup::"
+            done
             echo "::error::El esquema de Room cambió o no está commiteado. Añade app/schemas/ (artefacto room-schemas) y, si sube la versión, escribe la migración."
             exit 1
           fi
