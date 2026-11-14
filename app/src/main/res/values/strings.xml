@@ -1,25 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Kinetic Pulse</string>
-    <string name="live_workout_title">Sesión en vivo</string>
-    <string name="label_weight">Kilos</string>
-    <string name="label_reps">Reps</string>
-    <string name="label_rpe">RPE</string>
-    <string name="label_hold">Hold</string>
-    <string name="action_log_set">Registrar set</string>
-    <string name="action_start_hold">Iniciar isometría</string>
-    <string name="action_stop_hold">Detener</string>
-    <string name="quick_log_hint">Ej: 4x10 planche lean 5s pausa</string>
-    <string name="quick_log_title">NLP Quick Log</string>
-    <string name="action_parse">Procesar</string>
-    <string name="engine_status_unloaded">IA local: sin cargar</string>
-    <string name="engine_status_loading">IA local: cargando modelo…</string>
-    <string name="engine_status_ready">IA local: %1$s · %2$s</string>
-    <string name="engine_status_missing">IA local: modelo no encontrado, usando parser básico</string>
-    <string name="engine_status_error">IA local: error (%1$s)</string>
+    <string name="app_name">Mi Entrenamiento</string>
+
+    <!-- Inicio -->
+    <string name="home_title">¿Entrenamos hoy?</string>
+    <string name="action_start_workout">Empezar entreno</string>
+    <string name="home_week_none">Aún no has entrenado esta semana.</string>
+    <plurals name="home_week">
+        <item quantity="one">Esta semana: %1$d entreno.</item>
+        <item quantity="other">Esta semana: %1$d entrenos.</item>
+    </plurals>
+    <string name="home_done_title">¡Buen trabajo!</string>
+    <plurals name="home_done_body">
+        <item quantity="one">Hiciste %1$d serie en %2$d min.</item>
+        <item quantity="other">Hiciste %1$d series en %2$d min.</item>
+    </plurals>
+    <string name="fatigue_fresh_title">Estás descansado</string>
+    <string name="fatigue_fresh_body">Hoy puedes apretar: sube un poco el peso o haz una serie más.</string>
+    <string name="fatigue_ok_title">Vas bien</string>
+    <string name="fatigue_ok_body">Sigue así. Intenta superar lo de la última vez por poco.</string>
+    <string name="fatigue_high_title">Vienes cargado</string>
+    <string name="fatigue_high_body">Mantén los pesos y haz una o dos series menos por ejercicio.</string>
+    <string name="fatigue_over_title">Toca bajar el ritmo</string>
+    <string name="fatigue_over_body">Llevas mucho cansancio acumulado. Esta semana, entrenos suaves.</string>
+
+    <!-- Entreno -->
+    <string name="workout_title">Entreno</string>
+    <string name="workout_elapsed">Llevas %1$d min</string>
+    <string name="action_finish">Terminar</string>
+    <string name="action_keep_going">Seguir entrenando</string>
+    <string name="finish_title">¿Terminar el entreno?</string>
+    <plurals name="finish_body">
+        <item quantity="one">Has guardado %1$d serie.</item>
+        <item quantity="other">Has guardado %1$d series.</item>
+    </plurals>
+    <string name="action_change">Cambiar</string>
+    <string name="modality_weighted">Con peso</string>
+    <string name="modality_bodyweight">Peso corporal</string>
+    <string name="modality_isometric">Por tiempo</string>
+    <string name="label_weight">Peso</string>
+    <string name="label_reps">Repeticiones</string>
+    <string name="label_hold">Segundos</string>
+    <string name="label_effort">¿Cómo te costó?</string>
+    <string name="effort_easy">Fácil</string>
+    <string name="effort_hard">Duro</string>
+    <string name="effort_max">Al límite</string>
+    <string name="previous_weighted">La última vez: %1$s kg × %2$d</string>
+    <string name="previous_reps">La última vez: %1$d repeticiones</string>
+    <string name="previous_hold">La última vez: %1$d s</string>
+    <string name="action_save_set">Guardar serie %1$d</string>
+    <string name="action_start_hold">Empezar · %1$d s</string>
+    <string name="action_stop_hold">Parar y guardar</string>
     <string name="hold_seconds">%1$d s</string>
-    <string name="sets_logged">Sets registrados</string>
-    <string name="fatigue_label">Fatiga</string>
-    <string name="content_desc_decrease">Disminuir %1$s</string>
-    <string name="content_desc_increase">Aumentar %1$s</string>
+    <string name="hold_goal">Objetivo: %1$d s</string>
+    <string name="rest_timer">Descanso %1$d:%2$02d</string>
+    <string name="action_type_it">Escribirlo en texto</string>
+    <plurals name="today_sets">
+        <item quantity="one">Hoy · %1$d serie</item>
+        <item quantity="other">Hoy · %1$d series</item>
+    </plurals>
+    <plurals name="sets_saved">
+        <item quantity="one">Serie guardada</item>
+        <item quantity="other">%1$d series guardadas</item>
+    </plurals>
+    <string name="action_undo">Deshacer</string>
+    <string name="set_undone">Serie borrada</string>
+
+    <!-- Elegir ejercicio -->
+    <string name="picker_title">Elige ejercicio</string>
+    <string name="picker_search">Busca o escribe uno nuevo</string>
+    <string name="picker_new">Añadir «%1$s» como:</string>
+
+    <!-- Escribir en texto -->
+    <string name="quick_log_title">Escríbelo como te salga</string>
+    <string name="quick_log_help">La app lo entiende y lo guarda por ti, sin internet.</string>
+    <string name="quick_log_hint">Ej: 4x10 press banca 60 kg</string>
+    <string name="quick_log_reading">Leyendo…</string>
+    <string name="action_save">Guardar</string>
+
+    <string name="content_desc_decrease">Bajar %1$s</string>
+    <string name="content_desc_increase">Subir %1$s</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.kineticpulse.app.data.repository
 
 import androidx.room.withTransaction
+import com.kineticpulse.app.data.db.ExerciseEntity
 import com.kineticpulse.app.data.db.KineticDatabase
 import com.kineticpulse.app.di.ApplicationScope
 import com.kineticpulse.app.data.db.SetEntryEntity
@@ -38,10 +39,35 @@ class WorkoutRepository @Inject constructor(
 
     suspend fun finishSession(sessionId: Long) = workoutDao.finishSession(sessionId, clock.millis())
 
-    /** Para llamar desde `onCleared`, cuando el scope del ViewModel ya no existe. */
+    /** Para llamar cuando el scope del ViewModel ya no existe. */
     fun finishSessionAsync(sessionId: Long) {
         appScope.launch { finishSession(sessionId) }
     }
+
+    /**
+     * Entreno de hoy que quedó abierto (la app se cerró a mitad), para retomarlo.
+     * Los abiertos de días anteriores se cierran: nadie retoma un entreno de ayer.
+     */
+    suspend fun resumableSession(): WorkoutSessionEntity? {
+        val open = workoutDao.openSessions()
+        val today = today()
+        val (current, stale) = open.partition { it.epochDay == today }
+        stale.forEach { workoutDao.finishSession(it.id, clock.millis()) }
+        current.drop(1).forEach { workoutDao.finishSession(it.id, clock.millis()) }
+        return current.firstOrNull()
+    }
+
+    suspend fun deleteLastSet(sessionId: Long) = workoutDao.deleteLastSet(sessionId)
+
+    suspend fun lastSetFor(exerciseName: String): SetEntryEntity? =
+        workoutDao.lastSetFor(exerciseName.trim().lowercase())
+
+    fun observeExercises(): Flow<List<ExerciseEntity>> = exerciseDao.observeByRecentUse()
+
+    /** Entrenos en los últimos 7 días (incluido hoy). */
+    fun observeWeekSessionCount(): Flow<Int> = workoutDao.observeSessionCountSince(today() - 6)
+
+    fun now(): Long = clock.millis()
 
     /** Expande cada DTO ("4x10") en N filas de set, numeradas tras los sets previos del ejercicio. */
     suspend fun logSets(sessionId: Long, items: List<RoutineSetDto>, source: SetSource) {
@@ -73,10 +99,11 @@ class WorkoutRepository @Inject constructor(
     fun observeSessionSets(sessionId: Long): Flow<List<SetWithExercise>> =
         workoutDao.observeSessionSets(sessionId)
 
-    /** Informe de fatiga reactivo sobre los últimos 28 días. */
-    fun observeFatigue(): Flow<FatigueReport> {
+    /** Informe de fatiga reactivo sobre los últimos 28 días; null si aún no hay datos. */
+    fun observeFatigue(): Flow<FatigueReport?> {
         val today = today()
         return workoutDao.observeSetsSince(today - 27).map { rows ->
+            if (rows.isEmpty()) return@map null
             val loads = rows.groupBy { it.epochDay }.map { (day, sets) ->
                 RpeFatigueAnalyzer.sessionLoad(
                     day,

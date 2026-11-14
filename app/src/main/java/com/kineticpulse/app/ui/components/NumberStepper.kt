@@ -1,15 +1,16 @@
 package com.kineticpulse.app.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,12 +29,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kineticpulse.app.R
 import java.util.Locale
 
 /**
- * Input numérico grande, pensado para usar con una mano y sudando: botones ± de 48 dp y
- * teclado numérico. Muestra enteros sin decimales y acepta coma o punto.
+ * Número grande con botones − y + de 64 dp a los lados, pensado para usar con una mano y
+ * sudando. El número también se puede tocar y escribir. Acepta coma o punto.
  */
 @Composable
 fun NumberStepper(
@@ -44,6 +46,7 @@ fun NumberStepper(
     step: Double = 1.0,
     range: ClosedFloatingPointRange<Double> = 0.0..999.0,
     decimals: Boolean = false,
+    unit: String? = null,
     accent: Color = MaterialTheme.colorScheme.primary,
 ) {
     fun format(v: Double) = if (decimals && v % 1.0 != 0.0) String.format(Locale.ROOT, "%.1f", v) else v.toLong().toString()
@@ -53,28 +56,41 @@ fun NumberStepper(
         if (text.replace(',', '.').toDoubleOrNull() != value) text = format(value)
     }
 
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             StepButton("−", stringResource(R.string.content_desc_decrease, label), accent) {
                 onValueChange((value - step).coerceIn(range))
             }
-            BasicTextField(
-                value = text,
-                onValueChange = { raw ->
-                    val cleaned = raw.filter { it.isDigit() || (decimals && (it == '.' || it == ',')) }.take(6)
-                    text = cleaned
-                    cleaned.replace(',', '.').toDoubleOrNull()?.let { onValueChange(it.coerceIn(range)) }
-                },
-                textStyle = MaterialTheme.typography.displayMedium.copy(color = accent, textAlign = TextAlign.Center),
-                cursorBrush = SolidColor(accent),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (decimals) KeyboardType.Decimal else KeyboardType.Number,
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier.widthIn(min = 72.dp, max = 120.dp),
-            )
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { raw ->
+                        val cleaned = raw.filter { it.isDigit() || (decimals && (it == '.' || it == ',')) }.take(6)
+                        text = cleaned
+                        cleaned.replace(',', '.').toDoubleOrNull()?.let { onValueChange(it.coerceIn(range)) }
+                    },
+                    textStyle = MaterialTheme.typography.displayLarge.copy(color = accent, textAlign = TextAlign.Center),
+                    cursorBrush = SolidColor(accent),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (decimals) KeyboardType.Decimal else KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (unit != null) {
+                    Text(
+                        unit,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             StepButton("+", stringResource(R.string.content_desc_increase, label), accent) {
                 onValueChange((value + step).coerceIn(range))
             }
@@ -84,11 +100,16 @@ fun NumberStepper(
 
 @Composable
 private fun StepButton(symbol: String, description: String, accent: Color, onClick: () -> Unit) {
-    OutlinedIconButton(
+    FilledTonalButton(
         onClick = onClick,
-        modifier = Modifier.size(48.dp).semantics { contentDescription = description },
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.6f)),
+        shape = RoundedCornerShape(18.dp),
+        contentPadding = ButtonDefaults.TextButtonContentPadding,
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = accent,
+        ),
+        modifier = Modifier.size(64.dp).semantics { contentDescription = description },
     ) {
-        Text(symbol, style = MaterialTheme.typography.titleLarge, color = accent)
+        Text(symbol, fontSize = 32.sp, color = accent)
     }
 }
