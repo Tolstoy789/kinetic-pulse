@@ -1,4 +1,6 @@
-# ⚡ Kinetic Pulse
+# ⚡ Mi Entrenamiento
+
+> Nombre visible de la app. El repositorio y el paquete Android siguen siendo `kinetic-pulse` / `com.kineticpulse.app`.
 
 [![Android CI](https://github.com/Tolstoy789/kinetic-pulse/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Tolstoy789/kinetic-pulse/actions/workflows/android-ci.yml)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.3-7F52FF?logo=kotlin&logoColor=white)

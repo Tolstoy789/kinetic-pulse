@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Kinetic Pulse</string>
+    <string name="app_name">Mi Entrenamiento</string>
 
     <!-- Inicio -->
     <string name="home_title">¿Entrenamos hoy?</string>
