@@ -15,13 +15,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kineticpulse.app.R
@@ -43,27 +44,16 @@ import com.kineticpulse.app.ui.theme.KineticTheme
 import com.kineticpulse.core.model.ExerciseModality
 import kotlin.math.roundToInt
 
-/** Estado inmutable de la tarjeta. La lógica vive en el ViewModel (state hoisting). */
-data class LiveSetDraft(
-    val exercise: String = "press banca",
-    val modality: ExerciseModality = ExerciseModality.WEIGHTED,
-    val weightKg: Double = 60.0,
-    val reps: Int = 8,
-    val holdSeconds: Int = 20,
-    val rpe: Double = 8.0,
-    val setNumber: Int = 1,
-)
-
 /**
- * Registro activo del set en curso.
- *  - Gimnasio / peso corporal: steppers de kilos y reps.
- *  - Isometría: objetivo en segundos + temporizador con barra luminosa a 120 Hz.
+ * La tarjeta de la serie actual. De arriba abajo, en el orden en que se usa:
+ * ejercicio (toca para cambiar) → números → cómo se sintió → botón grande de guardar.
  */
 @Composable
 fun LiveWorkoutCard(
     draft: LiveSetDraft,
     onDraftChange: (LiveSetDraft) -> Unit,
     onLogSet: (LiveSetDraft) -> Unit,
+    onChangeExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KineticTheme.colors
@@ -80,26 +70,25 @@ fun LiveWorkoutCard(
         border = BorderStroke(1.dp, accent.copy(alpha = 0.35f)),
         shape = MaterialTheme.shapes.large,
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Header(draft, accent)
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            ExerciseHeader(draft, accent, onChangeExercise)
 
             AnimatedContent(
-                targetState = isIsometric,
+                targetState = draft.modality,
                 transitionSpec = { fadeIn(KineticMotion.smooth()) togetherWith fadeOut(KineticMotion.smooth()) },
                 label = "modality",
-            ) { iso ->
-                if (iso) {
-                    IsometricSection(draft, onDraftChange, onLogSet)
-                } else {
-                    DynamicSection(draft, onDraftChange, accent)
+            ) { modality ->
+                when (modality) {
+                    ExerciseModality.ISOMETRIC -> IsometricSection(draft, onDraftChange, onLogSet)
+                    else -> DynamicSection(draft, onDraftChange, accent)
                 }
             }
 
-            RpeSlider(draft.rpe, onRpeChange = { onDraftChange(draft.copy(rpe = it)) })
+            EffortPicker(Effort.nearest(draft.rpe)) { onDraftChange(draft.copy(rpe = it.rpe)) }
 
             if (!isIsometric) {
-                PressableButton(
-                    text = stringResource(R.string.action_log_set),
+                BigButton(
+                    text = stringResource(R.string.action_save_set, draft.setNumber),
                     onClick = { onLogSet(draft) },
                 )
             }
@@ -108,17 +97,31 @@ fun LiveWorkoutCard(
 }
 
 @Composable
-private fun Header(draft: LiveSetDraft, accent: Color) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+private fun ExerciseHeader(draft: LiveSetDraft, accent: Color, onChangeExercise: () -> Unit) {
+    OutlinedButton(
+        onClick = onChangeExercise,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column(Modifier.weight(1f)) {
             Text(
-                draft.modality.name,
-                style = MaterialTheme.typography.labelMedium,
+                draft.exercise.displayName(),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                stringResource(draft.modality.label()),
+                style = MaterialTheme.typography.bodyMedium,
                 color = accent,
             )
-            Text(draft.exercise.uppercase(), style = MaterialTheme.typography.headlineMedium)
         }
-        Text("SET ${draft.setNumber}", style = MaterialTheme.typography.labelLarge, color = accent)
+        Text(
+            stringResource(R.string.action_change),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -128,16 +131,19 @@ private fun DynamicSection(
     onDraftChange: (LiveSetDraft) -> Unit,
     accent: Color,
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        NumberStepper(
-            label = stringResource(R.string.label_weight),
-            value = draft.weightKg,
-            onValueChange = { onDraftChange(draft.copy(weightKg = it)) },
-            step = 2.5,
-            range = 0.0..500.0,
-            decimals = true,
-            accent = accent,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (draft.modality == ExerciseModality.WEIGHTED) {
+            NumberStepper(
+                label = stringResource(R.string.label_weight),
+                value = draft.weightKg,
+                onValueChange = { onDraftChange(draft.copy(weightKg = it)) },
+                step = 2.5,
+                range = 0.0..500.0,
+                decimals = true,
+                unit = "kg",
+                accent = accent,
+            )
+        }
         NumberStepper(
             label = stringResource(R.string.label_reps),
             value = draft.reps.toDouble(),
@@ -145,7 +151,25 @@ private fun DynamicSection(
             range = 1.0..100.0,
             accent = accent,
         )
+        PreviousHint(draft)
     }
+}
+
+@Composable
+private fun PreviousHint(draft: LiveSetDraft) {
+    val prev = draft.previous ?: return
+    val text = when (draft.modality) {
+        ExerciseModality.WEIGHTED -> stringResource(R.string.previous_weighted, formatKg(prev.weightKg ?: 0.0), prev.reps ?: 0)
+        ExerciseModality.BODYWEIGHT -> stringResource(R.string.previous_reps, prev.reps ?: 0)
+        ExerciseModality.ISOMETRIC -> stringResource(R.string.previous_hold, prev.holdSeconds ?: 0)
+    }
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+    )
 }
 
 @Composable
@@ -159,13 +183,19 @@ private fun IsometricSection(
     }
     val colors = KineticTheme.colors
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (timer.isRunning) {
             Text(
                 text = stringResource(R.string.hold_seconds, timer.elapsedSeconds.toInt()),
                 style = MaterialTheme.typography.displayLarge,
                 color = colors.glowSecondary,
             )
+            Text(
+                stringResource(R.string.hold_goal, draft.holdSeconds),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            GlowProgressBar(progress = { timer.progress })
         } else {
             NumberStepper(
                 label = stringResource(R.string.label_hold),
@@ -173,14 +203,18 @@ private fun IsometricSection(
                 onValueChange = { onDraftChange(draft.copy(holdSeconds = it.roundToInt())) },
                 step = 5.0,
                 range = 1.0..300.0,
+                unit = "s",
                 accent = colors.glowSecondary,
             )
+            PreviousHint(draft)
         }
 
-        GlowProgressBar(progress = { timer.progress })
-
-        PressableButton(
-            text = stringResource(if (timer.isRunning) R.string.action_stop_hold else R.string.action_start_hold),
+        BigButton(
+            text = if (timer.isRunning) {
+                stringResource(R.string.action_stop_hold)
+            } else {
+                stringResource(R.string.action_start_hold, draft.holdSeconds)
+            },
             onClick = {
                 if (timer.isRunning) {
                     val held = timer.elapsedSeconds.toInt()
@@ -195,36 +229,53 @@ private fun IsometricSection(
     }
 }
 
+/** Tres palabras en lugar de un deslizador de RPE. */
 @Composable
-private fun RpeSlider(rpe: Double, onRpeChange: (Double) -> Unit) {
+private fun EffortPicker(selected: Effort, onSelect: (Effort) -> Unit) {
     val colors = KineticTheme.colors
-    val tint = when {
-        rpe >= 9.5 -> colors.fatigueOverreaching
-        rpe >= 8.5 -> colors.fatigueHigh
-        else -> colors.fatigueProductive
-    }
-    val animatedTint by animateColorAsState(tint, KineticMotion.smooth(), label = "rpeTint")
-
-    Column {
-        Row(Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.label_rpe), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-            Text(rpe.toString(), style = MaterialTheme.typography.labelLarge, color = animatedTint)
-        }
-        Slider(
-            value = rpe.toFloat(),
-            onValueChange = { onRpeChange((it * 2).roundToInt() / 2.0) },
-            valueRange = 5f..10f,
-            steps = 9,
-            colors = SliderDefaults.colors(thumbColor = animatedTint, activeTrackColor = animatedTint),
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            stringResource(R.string.label_effort),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Effort.entries.forEach { effort ->
+                val tint = when (effort) {
+                    Effort.EASY -> colors.fatigueFresh
+                    Effort.HARD -> colors.fatigueProductive
+                    Effort.MAX -> colors.fatigueOverreaching
+                }
+                val isSelected = effort == selected
+                OutlinedButton(
+                    onClick = { onSelect(effort) },
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) tint else MaterialTheme.colorScheme.outline),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (isSelected) tint.copy(alpha = 0.14f) else Color.Transparent,
+                        contentColor = if (isSelected) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier.weight(1f).height(56.dp),
+                ) {
+                    Text(
+                        stringResource(effort.label),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
     }
 }
 
-/** Botón con micro-escala de pulsación por spring: feedback táctil visual sin coste de layout. */
+/** Botón principal: 72 dp de alto y una micro-escala al pulsar como respuesta táctil. */
 @Composable
-private fun PressableButton(
+fun BigButton(
     text: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.primary,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -234,23 +285,32 @@ private fun PressableButton(
     Button(
         onClick = onClick,
         interactionSource = interaction,
+        shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = MaterialTheme.colorScheme.onPrimary),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(72.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             },
     ) {
-        Text(text.uppercase(), style = MaterialTheme.typography.labelLarge)
+        Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
     }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0D0D11)
 @Composable
 private fun LiveWorkoutCardWeightedPreview() {
-    KineticPulseTheme { LiveWorkoutCard(LiveSetDraft(), {}, {}, Modifier.padding(16.dp)) }
+    KineticPulseTheme {
+        LiveWorkoutCard(
+            LiveSetDraft(previous = PreviousSet(57.5, 8, null)),
+            {},
+            {},
+            {},
+            Modifier.padding(16.dp),
+        )
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0D0D11)
@@ -259,6 +319,7 @@ private fun LiveWorkoutCardIsometricPreview() {
     KineticPulseTheme {
         LiveWorkoutCard(
             LiveSetDraft(exercise = "planche lean", modality = ExerciseModality.ISOMETRIC, holdSeconds = 15),
+            {},
             {},
             {},
             Modifier.padding(16.dp),
